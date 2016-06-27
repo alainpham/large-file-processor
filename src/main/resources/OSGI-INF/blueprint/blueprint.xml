@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+	xmlns:camelcxf="http://camel.apache.org/schema/blueprint/cxf"
+	xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+	http://www.osgi.org/xmlns/blueprint/v1.0.0 ./xsd/blueprint.xsd
+	http://camel.apache.org/schema/blueprint ./xsd/camel-blueprint-2.15.1.xsd 
+	http://camel.apache.org/schema/blueprint/cxf ./xsd/camel-cxf-2.15.1-blueprint.xsd 
+	http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0  ./xsd/blueprint-cm-1.0.0.xsd
+	">
+	<bean class="com.redhat.pocs.processors.FileAsStream" id="fileAsStream">
+	</bean>
+	<bean class="com.redhat.pocs.processors.FileAsBufferedReader" id="fileAsBufferedReader">
+	</bean>
+	<bean class="com.redhat.pocs.processors.AdvancedBufferedFlatFileSplitter"
+		id="advancedBufferedFlatFileSplitter">
+	</bean>
+	<bean class="com.redhat.pocs.processors.AdvancedBufferedFlatFileSplitterMono"
+		id="advancedBufferedFlatFileSplitterMono">
+	</bean>
+	<bean
+		class="com.redhat.pocs.processors.AdvancedBufferedFlatFileSplitterNoProcessing"
+		id="advancedBufferedFlatFileSplitterNoProcessing">
+	</bean>
+	<bean
+		class="com.redhat.pocs.processors.AdvancedBufferedFlatFileSplitterWriterMono"
+		id="advancedBufferedFlatFileSplitterWriterMono">
+	</bean>
+	<bean
+		class="	com.redhat.pocs.processors.AdvancedBufferedFlatFileSplitterWriterMulti"
+		id="advancedBufferedFlatFileSplitterWriterMulti">
+	</bean>
+
+	<bean class="com.redhat.pocs.processors.BufferedChunkWriter" id="bufferedChunkWriter">
+	</bean>
+	<bean
+		class="com.redhat.pocs.processors.AdvancedBufferedFlatFileSplitterWriterMonoRawText"
+		id="advancedBufferedFlatFileSplitterWriterMonoRawText">
+	</bean>
+	<bean
+		class="com.redhat.pocs.processors.AdvancedBufferedFlatFileSplitterWriterMultiRawText"
+		id="advancedBufferedFlatFileSplitterWriterMultiRawText">
+	</bean>
+
+	<bean class="com.redhat.pocs.processors.HelperFunctions" id="helperFunctions"></bean>
+	<bean class="com.redhat.pocs.processors.ProcessRawFileChunks" id="processRawFileChunks"></bean>
+
+	<bean class="com.redhat.pocs.processors.OpenBufferedWriter" id="openBufferedWriter"></bean>
+	<cm:property-placeholder id="globalprops.placeholder"
+		persistent-id="globalprops">
+		<cm:default-properties>
+			<cm:property name="fileWorkingFolder"
+				value="/home/apham/TAZONE/MISSIONS/2016_05_BNP/data/" />
+		</cm:default-properties>
+	</cm:property-placeholder>
+
+	<camelContext id="camelProjectContext"
+		xmlns="http://camel.apache.org/schema/blueprint"
+		xsi:schemaLocation="http://camel.apache.org/schema/blueprint ./xsd/camel-blueprint-2.15.1.xsd">
+
+		<propertyPlaceholder location="blueprint:globalprops.placeholder" />
+
+		<threadPoolProfile id="tokmultixml" poolSize="4"
+			maxPoolSize="4" maxQueueSize="4" allowCoreThreadTimeOut="false"
+			rejectedPolicy="CallerRuns" />
+		<endpoint uri="seda:processChunk" id="processChunk">
+			<property key="concurrentConsumers" value="4" />
+			<property key="blockWhenFull" value="true" />
+			<property key="size" value="4" />
+		</endpoint>
+
+		<endpoint uri="seda:processChunkMultiWrite" id="processChunkMultiWrite">
+			<property key="concurrentConsumers" value="4" />
+			<property key="blockWhenFull" value="true" />
+			<property key="size" value="4" />
+		</endpoint>
+
+		<endpoint uri="seda:processChunkMultiRawTextWrite" id="processChunkMultiRawTextWrite">
+			<property key="concurrentConsumers" value="4" />
+			<property key="blockWhenFull" value="true" />
+			<property key="size" value="4" />
+		</endpoint>
+
+		<dataFormats>
+			<bindy id="bindyDataformat" type="Csv"
+				classType="com.redhat.pocs.model.WireTransfer" />
+		</dataFormats>
+
+		<restConfiguration component="netty4-http" port="7123"
+			bindingMode="json" enableCORS="true" />
+		<rest id="restSvc" path="/fileprocessor">
+			<get uri="time">
+				<to uri="direct:time" />
+			</get>
+			<get uri="gen/{uid}">
+				<to uri="direct:generateData" />
+			</get>
+			<get uri="genxml/{uid}">
+				<to uri="direct:generateXML" />
+			</get>
+
+			<get uri="tokenize/{uid}">
+				<to uri="direct:tokenize" />
+			</get>
+			<get uri="tokenizeparse/{uid}">
+				<to uri="direct:tokenizeparse" />
+			</get>
+			<get uri="tokenizeparsemulti/{uid}">
+				<to uri="direct:tokenizeparsemulti" />
+			</get>
+			<get uri="bufferedreadparse/{uid}">
+				<to uri="direct:bufferedreadparse" />
+			</get>
+			<get uri="bufferedreadparsemono/{uid}">
+				<to uri="direct:bufferedreadparsemono" />
+			</get>
+			<get uri="bufferedreadparsewritemono/{uid}">
+				<to uri="direct:bufferedreadparsewritemono" />
+			</get>
+			<get uri="bufferedreadparsewritemulti/{uid}">
+				<to uri="direct:bufferedreadparsewritemulti" />
+			</get>
+			<get uri="bufferedreadparsewritemonorawtext/{uid}">
+				<to uri="direct:bufferedreadparsewritemonorawtext" />
+			</get>
+			<get uri="bufferedreadparsewritemultirawtext/{uid}">
+				<to uri="direct:bufferedreadparsewritemultirawtext" />
+			</get>
+			<get uri="tokenizexmlmono/{uid}">
+				<to uri="direct:tokenizexmlmono" />
+			</get>
+			<get uri="tokenizexmlmulti/{uid}">
+				<to uri="direct:tokenizexmlmulti" />
+			</get>
+			
+			<get uri="bufferedread/{uid}">
+				<to uri="direct:bufferedread" />
+			</get>
+
+		</rest>
+
+		<route>
+			<from uri="direct:time"></from>
+			<setBody>
+				<method ref="helperFunctions" method="getTimestamp"></method>
+			</setBody>
+		</route>
+
+
+		<!-- a route to test parallel threads on the same file -->
+		<route id="caster">
+			<from uri="direct:caster"></from>
+			<multicast parallelProcessing="true">
+				<to uri="direct:processDataSimple"></to>
+				<to uri="direct:processDataSimple"></to>
+				<to uri="direct:processDataSimple"></to>
+				<to uri="direct:processDataSimple"></to>
+			</multicast>
+		</route>
+
+		<route id="settingHeaders">
+			<from uri="direct:settingHeaders" />
+			<setProperty propertyName="dateStart">
+				<simple>${date:now:yyyy-MM-dd'T'HH:mm:ss.SSS}</simple>
+			</setProperty>
+			<setProperty propertyName="tsStart">
+				<method ref="helperFunctions" method="getTimestamp"></method>
+			</setProperty>
+			<setHeader headerName="folder">
+				<simple>${properties:fileWorkingFolder}</simple>
+			</setHeader>
+			<setHeader headerName="fileName">
+				<simple>${headers.uid}</simple>
+			</setHeader>
+		</route>
+
+		<route id="end">
+			<from uri="direct:end"></from>
+			<setProperty propertyName="dateEnd">
+				<simple>${date:now:yyyy-MM-dd'T'HH:mm:ss.SSS}</simple>
+			</setProperty>
+			<setProperty propertyName="tsEnd">
+				<method ref="helperFunctions" method="getTimestamp"></method>
+			</setProperty>
+			<setProperty propertyName="elapsed">
+				<mvel>exchange.properties['tsEnd'] - exchange.properties['tsStart']</mvel>
+			</setProperty>
+			<log message="start ${property.dateStart}"></log>
+			<log message="end ${property.dateEnd}"></log>
+			<log message="elpased(ms) ${property.elapsed}"></log>
+			<setBody>
+				<simple>Done</simple>
+			</setBody>
+		</route>
+
+		<!-- allows to generate -->
+		<route id="generateData">
+			<from uri="direct:generateData"></from>
+			<inOut uri="direct:settingHeaders"></inOut>
+			<setHeader headerName="fileName">
+				<simple>MOCK_DATA.csv</simple>
+			</setHeader>
+			<process ref="fileAsStream"></process>
+			<setHeader headerName="targetLoopNb">
+				<mvel>request.headers['uid']*1024*1024 / request.body.length()</mvel>
+			</setHeader>
+			<setHeader headerName="targetLoopNb">
+				<simple resultType="java.lang.Integer">${headers.targetLoopNb}</simple>
+			</setHeader>
+			<loop>
+				<simple>${headers.targetLoopNb}</simple>
+				<to
+					uri="file:{{fileWorkingFolder}}?fileName=gen.csv&amp;fileExist=Append"></to>
+			</loop>
+		</route>
+
+		<route id="processChunkRoute">
+			<description>Separate route to process file chunks with parsing behind seda queue</description>
+			<from uri="ref:processChunk"></from>
+			<unmarshal ref="bindyDataformat"></unmarshal>
+			<sample samplePeriod="1">
+				<log message="MBytes read : ${headers.mbRead}"></log>
+				<log message="avgMBperSec : ${headers.avgMBperSec}"></log>
+				<log message="sample : ${headers.sample}"></log>
+			</sample>
+		</route>
+
+		<route id="processChunkMultiWriteRoute">
+			<description>Separate route to process file chunks with parsing rendering and writing behind seda queue</description>
+			<from uri="ref:processChunkMultiWrite"></from>
+			<unmarshal ref="bindyDataformat"></unmarshal>
+			<marshal ref="bindyDataformat"></marshal>
+			<process ref="bufferedChunkWriter"></process>
+			<sample samplePeriod="1">
+				<log message="MBytes read : ${headers.mbRead}"></log>
+				<log message="avgMBperSec : ${headers.avgMBperSec}"></log>
+				<log message="sample : ${headers.sample}"></log>
+			</sample>
+		</route>
+		<route id="processChunkMultiRawTextWrite">
+			<description>Separate route to process file chunks and write chunks using raw text behind seda queue</description>
+			<from uri="ref:processChunkMultiRawTextWrite" />
+			<process ref="processRawFileChunks"></process>
+			<process ref="bufferedChunkWriter"></process>
+			<sample samplePeriod="1">
+				<log message="MBytes read : ${headers.mbRead}"></log>
+				<log message="avgMBperSec : ${headers.avgMBperSec}"></log>
+				<log message="sample : ${headers.sample}"></log>
+			</sample>
+		</route>
+
+		<route id="processChunkMonoRoute">
+			<description>Separate route to process file chunks with parsing</description>
+			<from uri="direct:processChunkMono"></from>
+			<unmarshal ref="bindyDataformat"></unmarshal>
+			<sample samplePeriod="1">
+				<log message="MBytes read : ${headers.mbRead}"></log>
+				<log message="avgMBperSec : ${headers.avgMBperSec}"></log>
+				<log message="sample : ${headers.sample}"></log>
+			</sample>
+		</route>
+
+		<route id="processChunkMonoWriteRoute">
+			<description>Separate route to process file chunks with parsing and writing</description>
+			<from uri="direct:processChunkMonoWrite"></from>
+			<unmarshal ref="bindyDataformat"></unmarshal>
+			<marshal ref="bindyDataformat"></marshal>
+			<process ref="bufferedChunkWriter"></process>
+			<sample samplePeriod="1">
+				<log message="MBytes read : ${headers.mbRead}"></log>
+				<log message="avgMBperSec : ${headers.avgMBperSec}"></log>
+				<log message="sample : ${headers.sample}"></log>
+			</sample>
+		</route>
+
+		<route id="processChunkMonoRawTextWrite">
+			<description>Separate route to process file chunks and writing without parsing</description>
+			<from uri="direct:processChunkMonoRawTextWrite" />
+			<process ref="processRawFileChunks"></process>
+			<process ref="bufferedChunkWriter"></process>
+			<sample samplePeriod="1">
+				<log message="MBytes read : ${headers.mbRead}"></log>
+				<log message="avgMBperSec : ${headers.avgMBperSec}"></log>
+				<log message="sample : ${headers.sample}"></log>
+			</sample>
+		</route>
+
+
+
+		<!-- Routes with BufferedReader to split the file (uses java.io.BufferedReader 
+			of Java) -->
+
+		<route id="bufferedreadparse">
+			<description>Processing file with BufferedReader and with parsing multi threaded</description>
+			<from uri="direct:bufferedreadparse" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="advancedBufferedFlatFileSplitter"></process>
+			<inOut uri="direct:end" />
+		</route>
+
+		<route id="bufferedreadparsewritemono">
+			<description>Processing file with BufferedReader and with parsing writing mono threaded</description>
+			<from uri="direct:bufferedreadparsewritemono" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="advancedBufferedFlatFileSplitterWriterMono"></process>
+			<inOut uri="direct:end" />
+		</route>
+
+
+		<route id="bufferedreadparsewritemultirawtext">
+			<description>Processing file with BufferedReader writing multi threaded on raw text</description>
+			<from uri="direct:bufferedreadparsewritemultirawtext" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="advancedBufferedFlatFileSplitterWriterMultiRawText"></process>
+			<inOut uri="direct:end" />
+		</route>
+
+		<route id="bufferedreadparsewritemulti">
+			<description>Processing file with BufferedReader and with parsing writing mono threaded</description>
+			<from uri="direct:bufferedreadparsewritemulti" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="advancedBufferedFlatFileSplitterWriterMulti"></process>
+			<inOut uri="direct:end" />
+		</route>
+
+
+
+		<route id="bufferedreadparsemono">
+			<description>Processing file with BufferedReader and with parsing mono threaded</description>
+			<from uri="direct:bufferedreadparsemono" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="advancedBufferedFlatFileSplitterMono"></process>
+			<inOut uri="direct:end" />
+		</route>
+
+		<route id="bufferedreadparsewritemonorawtext">
+			<description>Processing file with BufferedReader and with parsing writing mono threaded in raw text</description>
+			<from uri="direct:bufferedreadparsewritemonorawtext" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="advancedBufferedFlatFileSplitterWriterMonoRawText"></process>
+			<inOut uri="direct:end" />
+		</route>
+
+		<route id="bufferedread">
+			<description>Processing file with BufferedReader and with no parsing</description>
+			<from uri="direct:bufferedread" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="advancedBufferedFlatFileSplitterNoProcessing"></process>
+			<inOut uri="direct:end" />
+		</route>
+
+		<!-- Routes with tolenizer split and streaming (uses Scanner implementation 
+			of Java) -->
+
+		<route id="tokenize">
+			<description>Processing file with streamed tokenizer and without parsing</description>
+			<from uri="direct:tokenize" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="fileAsStream"></process>
+			<log message="${body.class}" />
+			<split streaming="true" shareUnitOfWork="true">
+				<tokenize group="20" token="\n"></tokenize>
+				<sample samplePeriod="1">
+					<log message="Split index : ${property.CamelSplitIndex}"></log>
+				</sample>
+			</split>
+			<inOut uri="direct:end" />
+		</route>
+
+		<route id="tokenizeparse">
+			<description>Processing file with streamed tokenizer and with parsing</description>
+			<from uri="direct:tokenizeparse" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="fileAsStream"></process>
+			<log message="${body.class}" />
+			<setHeader headerName="mbRead">
+				<mvel>0</mvel>
+			</setHeader>
+			<split streaming="true" shareUnitOfWork="true"
+				strategyMethodAllowNull="false">
+				<tokenize group="20" token="\n"></tokenize>
+				<unmarshal ref="bindyDataformat"></unmarshal>
+				<sample samplePeriod="1">
+					<log message="Split index : ${property.CamelSplitIndex}"></log>
+				</sample>
+			</split>
+			<inOut uri="direct:end" />
+		</route>
+
+		<route id="tokenizeparsemulti">
+			<description>Processing file with streamed tokenizer and with parsing multi threaded</description>
+			<from uri="direct:tokenizeparsemulti" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="fileAsStream"></process>
+			<log message="${body.class}" />
+			<setHeader headerName="mbRead">
+				<mvel>0</mvel>
+			</setHeader>
+			<split streaming="true" shareUnitOfWork="true"
+				strategyMethodAllowNull="false">
+				<tokenize group="20" token="\n"></tokenize>
+				<inOnly uri="seda:processChunk?blockWhenFull=true"></inOnly>
+				<sample samplePeriod="1">
+					<log message="Split index : ${property.CamelSplitIndex}"></log>
+				</sample>
+			</split>
+			<inOut uri="direct:end" />
+		</route>
+
+		<route id="tokenizexmlmono">
+			<description>Processing file with streamed tokenizer on xml files mono threaded</description>
+			<from uri="direct:tokenizexmlmono" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="openBufferedWriter"></process>
+			<setBody>
+				<constant><![CDATA[<root>]]></constant>
+			</setBody>
+			<process ref="bufferedChunkWriter"></process>
+			<process ref="fileAsStream"></process>
+			<log message="${body.class}" />
+			<split streaming="true" shareUnitOfWork="true"
+				strategyMethodAllowNull="false">
+				<xtokenize>/root/WireTransferMT103</xtokenize>
+				<choice>
+					<when>
+						<xpath>/WireTransferMT103/detailsOfCharge != ''</xpath>
+						<process ref="bufferedChunkWriter"></process>
+					</when>
+				</choice>
+				<sample samplePeriod="1">
+					<log message="Split index : ${property.CamelSplitIndex} ${body}"></log>
+				</sample>
+			</split>
+			<setBody>
+				<constant><![CDATA[</root>]]></constant>
+			</setBody>
+			<process ref="bufferedChunkWriter"></process>
+			<inOut uri="direct:end" />
+		</route>
+
+
+
+		<route id="tokenizexmlmulti">
+			<description>Processing file with streamed tokenizer on xml files mono threaded</description>
+			<from uri="direct:tokenizexmlmulti" />
+			<inOut uri="direct:settingHeaders" />
+			<process ref="openBufferedWriter"></process>
+			<setBody>
+				<constant><![CDATA[<root>]]></constant>
+			</setBody>
+			<process ref="bufferedChunkWriter"></process>
+			<process ref="fileAsStream"></process>
+			<log message="${body.class}" />
+			<split streaming="true" shareUnitOfWork="true"
+				strategyMethodAllowNull="false" executorServiceRef="tokmultixml">
+				<xtokenize>/root/WireTransferMT103</xtokenize>
+				<choice>
+					<when>
+						<xpath>/WireTransferMT103/detailsOfCharge != ''</xpath>
+						<process ref="bufferedChunkWriter"></process>
+					</when>
+				</choice>
+				<sample samplePeriod="1">
+					<log message="Split index : ${property.CamelSplitIndex} ${body}"></log>
+				</sample>
+			</split>
+			<setBody>
+				<constant><![CDATA[</root>]]></constant>
+			</setBody>
+			<process ref="bufferedChunkWriter"></process>
+			<inOut uri="direct:end" />
+		</route>
+
+		<route id="generateXML">
+			<from uri="direct:generateXML" />
+			<setBody>
+				<constant><![CDATA[<root>]]></constant>
+			</setBody>
+			<to
+				uri="file:{{fileWorkingFolder}}?fileName=gen.xml&amp;fileExist=Append"></to>
+			<inOut uri="direct:settingHeaders"></inOut>
+			<setHeader headerName="fileName">
+				<simple>root.xml</simple>
+			</setHeader>
+			<process ref="fileAsStream"></process>
+			<split streaming="true" shareUnitOfWork="true"
+				strategyMethodAllowNull="false">
+				<xtokenize mode="u">/root</xtokenize>
+				<setHeader headerName="targetLoopNb">
+					<mvel>request.headers['uid']*1024*1024 / request.body.length()</mvel>
+				</setHeader>
+				<setHeader headerName="targetLoopNb">
+					<simple resultType="java.lang.Integer">${headers.targetLoopNb}</simple>
+				</setHeader>
+				<loop>
+					<simple>${headers.targetLoopNb}</simple>
+					<to
+						uri="file:{{fileWorkingFolder}}?fileName=gen.xml&amp;fileExist=Append"></to>
+				</loop>
+			</split>
+			<setBody>
+				<constant><![CDATA[</root>]]></constant>
+			</setBody>
+			<to
+				uri="file:{{fileWorkingFolder}}?fileName=gen.xml&amp;fileExist=Append"></to>
+		</route>
+	</camelContext>
+</blueprint>
